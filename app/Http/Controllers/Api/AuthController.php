@@ -1,63 +1,99 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use GuzzleHttp\Promise\Create;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
-use App\Models\User;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users',
-            'password' => 'required|string|min:6',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user
-        ], 201);
-    }
-
+    //login
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+        //check user
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found'
+            ], 404);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        //check password
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Password is not match'
+            ], 404);
+        }
+
+        //generate token
+        $token = $user->createToken('Bearer Token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Login successful',
-            'user' => $user,
-            'access_token' => $token,
-            'token_type' => 'Bearer'
-        ], 200);
+            'token' => $token,
+            'user' => $user
+        ]);
     }
 
+    public function register(Request $request)
+    {
+        $validate = $request->validate([
+            'name' => 'required',
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+        $user = User::created([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->newPassword)
+        ]);
+        $cek_email = User::where('email', $request->email);
+        if ($cek_email == true) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Redudan'
+            ]);
+        }
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Logout successfully'
+        ]);
+    }
+
+    public function cari_user(Request $request)
+    {
+        $user = $request->user();
+        if ($user == true) {
+            return response()->json([
+                'status'=>'success',
+                'user' => $user
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'danger',
+                'message' => 'User tidak ditemukan'
+            ]);
+        }
+    }
+
+    //logout
     public function logout(Request $request)
     {
-        $request->user()->tokens()->delete();
+        $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully'], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Logout successfully'
+        ]);
     }
 }

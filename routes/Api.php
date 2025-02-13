@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\Api\ProductController;
 
 Route::post('auth/login', [AuthController::class, 'login']);
@@ -13,6 +14,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('products', ProductController::class);
+    Route::apiResource('order', OrderController::class);
     Route::prefix('kategori')->group(function(){
         Route::get('/data', [KategoriController::class, 'index']);
         Route::post('/tambah', [KategoriController::class, 'create']);
@@ -22,8 +24,4 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Route::apiResource('/kategori',[KategoriController::class]);
-
-
-// Route::apiResource('/products', [ProductController::class]);
-
 });
